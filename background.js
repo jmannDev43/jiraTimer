@@ -12,96 +12,90 @@ chrome.windows.getCurrent(function (window) {
 });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    if (request.action === 'start' || request.action === 'stop') {
-        updateIcon(request.action);
-        storeTicketInfo(request.action);
-    } else if (request.action === 'focusOrNavigateToTab'){
-        focusOrNavigateToTab(request.url);
+    if (request.method){
+        bg[request.method](request);
     }
 });
 
-// chrome.tabs.onActivated.addListener(function (tabInfo) {
-//     tabUpdateOrActivate(tabInfo.tabId, 'activated');
-// });
-
-// don't think I need to call same code from tabs.onActivated...but if I do, get tabId like so: var tabId = Object.values(res).tabId;
 chrome.tabs.onUpdated.addListener(function (tabId) {
-    tabUpdateOrActivate(tabId, 'updated');
+    bg.onTabUpdated(tabId, 'updated');
 });
 
-function focusOrNavigateToTab(url) {
-    chrome.tabs.query({}, function(tabs){
-        tabs = $.grep(tabs, function (tab) {
-           return tab.url === url;
+// background script methods;
+var bg = {
+    focusOrNavigateToTab: function(req) {
+        chrome.tabs.query({}, function(tabs){
+            tabs = $.grep(tabs, function (tab) {
+                return tab.url === req.url;
+            });
+            if (tabs.length === 1){
+                // if tab(s) exists with desired url, set focus to first available one
+                chrome.tabs.update(tabs[0].id, {selected: true});
+            } else {
+                // otherwise create new tab and change focus
+                chrome.tabs.create({url: req.url, active: true}, function(){});
+            }
         });
-        if (tabs.length === 1){
-            // if tab(s) exists with desired url, set focus to first available one
-            chrome.tabs.update(tabs[0].id, {selected: true});
-        } else {
-            // otherwise create new tab and change focus
-            chrome.tabs.create({url: url, active: true}, function(){});
-        }
-    });
-}
+    },
+    onTabUpdated: function(tabId) {
+        chrome.tabs.get(tabId, function (tabInfo) {
+            var isJiraPage = tabInfo.url.indexOf('jira.ties.k12.mn.us/browse/') > -1;
+            var jiraTicketName = isJiraPage ? tabInfo.title.substr(1, tabInfo.title.indexOf(']') - 1) : 'NA';
+            if (isJiraPage) {
+                chrome.storage.local.get(function (res) {
+                    var keys = Object.keys(res);
+                    if (keys.indexOf(jiraTicketName) > -1) {
+                        bg.updateIcon({action: 'start'}, tabId);
+                        bg.sendBackgroundMessage({action: 'updateStatusImage'});
+                    }
+                });
+            }
+        });
+    },
+    storeTicketInfo: function(req) {
+        chrome.tabs.query({windowId: windowId, active: true}, function (tabs) {
+            var save = {};
+            var selectedTab = tabs[0];
+            if (selectedTab) {
+                var jiraTicketName = selectedTab.title.substr(1, selectedTab.title.indexOf(']') - 1);
 
-function tabUpdateOrActivate(tabId, eventType) {
-    chrome.tabs.get(tabId, function (tabInfo) {
-        var isJiraPage = tabInfo.url.indexOf('jira.ties.k12.mn.us/browse/') > -1;
-        var jiraTicketName = isJiraPage ? tabInfo.title.substr(1, tabInfo.title.indexOf(']') - 1) : 'NA';
-        // chrome.storage.local.set({'activeTicket': jiraTicketName}, function () {});
-        if (isJiraPage && eventType === 'updated') {
-            chrome.storage.local.get(function (res) {
-                var keys = Object.keys(res);
-                if (keys.indexOf(jiraTicketName) > -1) {
-                    updateIcon('start', tabId);
-                    sendBackgroundMessage({action: 'updateStatusImage'});
+                if (req.action === 'start') {
+                    save[jiraTicketName] = {start: moment.now(), tabId: selectedTab.id, url: selectedTab.url};
+                    chrome.storage.local.set(save, function () {});
+                } else {
+                    chrome.storage.local.get(jiraTicketName, function (ticketRes) {
+                        var end = Object.values(ticketRes)[0]['end'] ? Object.values(ticketRes)[0]['end'] : moment.now();
+                        var start = Object.values(ticketRes)[0].start;
+                        bg.sendBackgroundMessage({action: 'logWork', start: start, end: end, ticketName: jiraTicketName});
+                    });
+                }
+            }
+        });
+    },
+    sendBackgroundMessage: function(options) {
+        options['from'] = 'background';
+        chrome.tabs.query({active: true, windowId: windowId}, function (tabs) {
+            var selectedTab = tabs[0];
+            if (selectedTab) {
+                chrome.tabs.sendMessage(selectedTab.id, options, function (response) {});
+            }
+        });
+    },
+    updateIcon: function(req, tabId) {
+        var iconName = req.action === 'stop' ? 'inactive_19.png' : 'active_19.png';
+        if (tabId) {
+            chrome.browserAction.setIcon({path: iconName, tabId: tabId});
+        } else {
+            chrome.tabs.query({windowId: windowId, active: true}, function (tabs) {
+                var selectedTab = tabs[0];
+                if (selectedTab) {
+                    chrome.browserAction.setIcon({path: iconName, tabId: selectedTab.id});
                 }
             });
         }
-    });
-}
-
-function storeTicketInfo(action) {
-    chrome.tabs.query({windowId: windowId, active: true}, function (tabs) {
-        var save = {};
-        var selectedTab = tabs[0];
-        if (selectedTab) {
-            var jiraTicketName = selectedTab.title.substr(1, selectedTab.title.indexOf(']') - 1);
-
-            if (action === 'start') {
-                save[jiraTicketName] = {start: moment.now(), tabId: selectedTab.id, url: selectedTab.url};
-                chrome.storage.local.set(save, function () {});
-            } else {
-                chrome.storage.local.get(jiraTicketName, function (ticketRes) {
-                    var end = moment.now();
-                    var start = Object.values(ticketRes)[0].start;
-                    sendBackgroundMessage({action: 'logWork', start: start, end: end, ticketName: jiraTicketName});
-                });
-            }
-        }
-    });
-}
-
-function sendBackgroundMessage(options) {
-    options['from'] = 'background';
-    chrome.tabs.query({active: true, windowId: windowId}, function (tabs) {
-        var selectedTab = tabs[0];
-        if (selectedTab) {
-            chrome.tabs.sendMessage(selectedTab.id, options, function (response) {});
-        }
-    });
-}
-
-function updateIcon(action, tabId) {
-    var iconName = action === 'stop' ? 'inactive_19.png' : 'active_19.png';
-    if (tabId) {
-        chrome.browserAction.setIcon({path: iconName, tabId: tabId});
-    } else {
-        chrome.tabs.query({windowId: windowId, active: true}, function (tabs) {
-            var selectedTab = tabs[0];
-            if (selectedTab) {
-                chrome.browserAction.setIcon({path: iconName, tabId: selectedTab.id});
-            }
-        });
     }
+
 }
+
+
+
