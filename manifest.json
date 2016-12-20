@@ -1,0 +1,30 @@
+{
+  "name": "Jira Timer",
+  "version": "0.0.1",
+  "manifest_version": 2,
+  "description": "Start and stop functionality for logging work on Jira tickets.",
+  "icons": {
+    "19": "inactive_19.png",
+    "32": "inactive_32.png",
+    "48": "inactive_48.png"
+  },
+  "background": {
+    "scripts": ["third-party/js/jquery-3.1.1.min.js", "third-party/js/moment.min.js", "background.js"],
+    "persistent": false
+  },
+  "content_scripts": [{
+    "matches": ["*://jira.ties.k12.mn.us/*"],
+    "js": ["third-party/js/jquery-3.1.1.min.js", "third-party/js/moment.min.js", "third-party/js/toastr.min.js", "third-party/js/anime.min.js", "jiraTimer.js"],
+    "css": ["third-party/css/toastr.min.css", "jiraTimer.css"]
+  }],
+  "browser_action": {
+    "default_icon": "inactive_19.png",
+    "default_title": "Jira Timer"
+  },
+  "permissions": [
+    "tabs", "background", "storage"
+  ],
+  "web_accessible_resources": [
+    "active_19.png", "inactive_19.png", "code2coffee2.gif"
+  ]
+}
