@@ -39,7 +39,7 @@ var bg = {
     },
     onTabUpdated: function(tabId) {
         chrome.tabs.get(tabId, function (tabInfo) {
-            var isJiraPage = tabInfo.url.indexOf('jira.ties.k12.mn.us/browse/') > -1;
+            var isJiraPage = tabInfo.url.indexOf('https://jira.') > -1 && tabInfo.url.indexOf('/browse/') > -1;
             var jiraTicketName = isJiraPage ? tabInfo.title.substr(1, tabInfo.title.indexOf(']') - 1) : 'NA';
             if (isJiraPage) {
                 chrome.storage.local.get(function (res) {
