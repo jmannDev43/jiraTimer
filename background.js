@@ -11,22 +11,36 @@ chrome.windows.getCurrent(function (window) {
     });
 });
 
+chrome.windows.onFocusChanged.addListener(function (windowChangeId) {
+    if (windowChangeId && windowChangeId > -1){
+        windowId = windowChangeId;
+        chrome.tabs.query({active: true, windowId: windowId}, function (tabs) {
+            var selectedTab = tabs[0];
+            bg.onTabUpdated(selectedTab.id);
+        })
+    }
+})
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.method){
         bg[request.method](request);
     }
 });
 
+chrome.tabs.onActivated.addListener(function (tabInfo) {
+    bg.onTabUpdated(tabInfo.tabId);
+})
+
 chrome.tabs.onUpdated.addListener(function (tabId) {
-    bg.onTabUpdated(tabId, 'updated');
+    bg.onTabUpdated(tabId);
 });
 
 // background script methods;
 var bg = {
     focusOrNavigateToTab: function(req) {
-        chrome.tabs.query({}, function(tabs){
+        chrome.tabs.query({windowId: windowId}, function(tabs){
             tabs = $.grep(tabs, function (tab) {
-                return tab.url === req.url;
+                return tab.url === req.url.replace('#','');
             });
             if (tabs.length === 1){
                 // if tab(s) exists with desired url, set focus to first available one
@@ -64,7 +78,7 @@ var bg = {
                     chrome.storage.local.set(save, function () {});
                 } else {
                     chrome.storage.local.get(jiraTicketName, function (ticketRes) {
-                        var end = Object.values(ticketRes)[0]['end'] ? Object.values(ticketRes)[0]['end'] : moment.now();
+                        var end = (Object.values(ticketRes)[0] && Object.values(ticketRes)[0].end) ? Object.values(ticketRes)[0]['end'] : moment.now();
                         var start = Object.values(ticketRes)[0].start;
                         bg.sendBackgroundMessage({action: 'logWork', start: start, end: end, ticketName: jiraTicketName});
                     });
