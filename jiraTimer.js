@@ -128,8 +128,13 @@ var cs = {
                 "tapToDismiss": false
             });
 
-        $toast.delegate('#updateTimesBtn', 'click', cs.updateTime);
-        $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
+        if ($toast.find('#updateTimesBtn').length){
+            $toast.delegate('#updateTimesBtn', 'click', cs.updateTime);
+        }
+
+        if ($toast.find('#clearTimesBtn').length){
+            $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
+        }
     },
     sendClearOnlyToast: function () {
         var title = ('Duration must be at least 1 minute.');
@@ -142,7 +147,9 @@ var cs = {
                 "extendedTimeOut": "0"
             });
 
-        $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
+        if ($toast.find('#clearTimesBtn').length){
+            $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
+        }
     },
     displayDurationInfo: function(e){
         if ($(e.target).hasClass('active')){
