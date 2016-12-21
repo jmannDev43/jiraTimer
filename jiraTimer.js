@@ -34,16 +34,27 @@ var cs = {
 
         cs.bounceIn(isOnLoad);
     },
-    logWork: function(start, end, ticketName) {
+    getDurationInfo: function (start, end, format) {
         var duration = {
+            seconds: moment(end).diff(moment(start), 'seconds'),
             minutes: moment(end).diff(moment(start), 'minutes'),
             hours: moment(end).diff(moment(start), 'hours'),
             days: moment(end).diff(moment(start), 'days') // left it running
         };
 
-        var hourStr = duration.hours > 0 ? duration.hours + 'h ' : '';
-        var minuteStr = duration.minutes > 0 && duration.minutes < 60 ? duration.minutes + 'm' : '';
-        var durationStr = hourStr + minuteStr;
+        duration['seconds'] = duration.seconds - (duration.minutes * 60);
+
+        var hourUnit = format === 'short' ? 'h ' : 'hours ';
+        var minuteUnit = format === 'short' ? 'm' : ' minutes ';
+
+        var hourStr = duration.hours > 0 ? duration.hours + hourUnit : '';
+        var minuteStr = duration.minutes > 0 && duration.minutes < 60 ? duration.minutes + minuteUnit : '';
+        var secondStr = (format !== 'short' && duration.seconds > 0) ? duration.seconds + ' seconds' : '';
+        duration['durationString'] = hourStr + minuteStr + secondStr;
+        return duration;
+    },
+    logWork: function(start, end, ticketName) {
+        var duration = cs.getDurationInfo(start, end, 'short');
         var commentStr = 'Start: ' + moment(start).format() + '\nEnd: ' + moment(end).format();
 
         if (duration.days > 0 || duration.hours > 7) {
@@ -55,7 +66,7 @@ var cs = {
             toastr.clear();
             var save = {
                 logWorkFormValues: {
-                    duration: durationStr,
+                    duration: duration.durationString,
                     comment: commentStr,
                     startDate: moment(start).format('DD/MMM/YY h:mm A'),
                     ticketName: ticketName
@@ -133,6 +144,25 @@ var cs = {
 
         $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
     },
+    displayDurationInfo: function(e){
+        if ($(e.target).hasClass('active')){
+            var jiraTicketName = document.title.substr(1, document.title.indexOf(']') - 1);
+            chrome.storage.local.get(jiraTicketName, function (ticketRes) {
+                var start = Object.values(ticketRes)[0].start;
+                var now = moment.now();
+                var duration = cs.getDurationInfo(start, now, 'long');
+
+                // should never run into situations where ticket wasn't started today...
+                var htmlMessage = '<br><p>Started today at ' + moment(start).format('h:mm A') + '</p>';
+                htmlMessage += '<p>Current time is ' + moment(now).format('h:mm A') + '</p>';
+                htmlMessage += '<p>Duration is ' + duration.durationString + '</p>';
+                $('.toast:visible').length < 1 && toastr.info(htmlMessage, jiraTicketName, {
+                    "positionClass": "toast-bottom-right",
+                    "progressBar": true
+                });
+            });
+        }
+    },
     bounceIn: function(isOnLoad) {
         if (isOnLoad) {
             anime({
@@ -161,8 +191,8 @@ var cs = {
                 complete: function () {
                     anime({
                         targets: '.jiraTimer',
-                        scale: 1.5,
-                        duration: 300,
+                        scale: 1.4,
+                        duration: 200,
                         delay: 150,
                         easing: 'easeInOutExpo',
                         complete: function () {
@@ -171,7 +201,7 @@ var cs = {
                                 scale: 1,
                                 easing: 'easeOutBounce',
                                 delay: 150,
-                                duration: 300
+                                duration: 200
                             });
                         }
                     });
@@ -235,6 +265,8 @@ $('.jiraTimer').on('click', function (e) {
 
     });
 });
+
+$('.jiraTimer').on('mouseover', cs.displayDurationInfo);
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.from === 'background') {

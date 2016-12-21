@@ -15,6 +15,7 @@
     background-position: 0% 0%;
     background-size: 40px 35px;
     background-color: rgba(0, 0, 0, 0);
+    cursor: pointer;
 }
 
 .jiraTimer.active {
@@ -58,6 +59,7 @@
     overflow: hidden;
     padding: 0px 30px;
     transition: all 0.3s ease-out 0s;
+    cursor: pointer;
 }
 
 .toastInput {
