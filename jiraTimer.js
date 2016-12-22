@@ -18,21 +18,21 @@ $(function () {
 
 // content script methods
 var cs = {
-    toggleIconActive: function(isActive, isOnLoad) {
-        var url;
-        if (isActive) { // stop, return to inactive
-            $('.jiraTimer').removeClass('active');
-            $('.jiraTimer').addClass('inactive');
-            $('.jiraTimer').text('start();');
-        } else { // start, return to active;
-            $('.jiraTimer').removeClass('inactive');
-            $('.jiraTimer').addClass('active');
-            url = chrome.runtime.getURL('code2coffee2.gif');
-            $('.jiraTimer').css('background-image', 'url(' + url + ')');
-            $('.jiraTimer').text('stop();');
-        }
+    updateTimerLink: function(setClass, isOnLoad, isOnTabFocus) {
+            var url;
+            if (setClass === 'active') { // stop, return to inactive
+                $('.jiraTimer').removeClass('inactive');
+                $('.jiraTimer').addClass('active');
+                url = chrome.runtime.getURL('code2coffee2.gif');
+                $('.jiraTimer').css('background-image', 'url(' + url + ')');
+                $('.jiraTimer').text('stop();');
+            } else { // start, return to active;
+                $('.jiraTimer').removeClass('active');
+                $('.jiraTimer').addClass('inactive');
+                $('.jiraTimer').text('start();');
+            }
 
-        cs.bounceIn(isOnLoad);
+            !isOnTabFocus && cs.bounceIn(isOnLoad);
     },
     getDurationInfo: function (start, end, format) {
         var duration = {
@@ -57,13 +57,13 @@ var cs = {
         var duration = cs.getDurationInfo(start, end, 'short');
         var commentStr = 'Start: ' + moment(start).format() + '\nEnd: ' + moment(end).format();
 
+        toastr.clear();
         if (duration.days > 0 || duration.hours > 7) {
             cs.sendUpdateTimeToast(start, end, ticketName);
         } else if (duration.minutes < 1) {
             cs.sendClearOnlyToast();
             cs.sendContentMessage({method: 'updateIcon', action: 'stop'});
         } else {
-            toastr.clear();
             var save = {
                 logWorkFormValues: {
                     duration: duration.durationString,
@@ -91,7 +91,7 @@ var cs = {
         newEnd = moment(newEnd, "YYYY-MM-DD h:m A").valueOf();
         var ticketName = $('#jiraUpdateTicketName').text();
 
-        cs.toggleIconActive(true, false); // update icon, store logWork
+        cs.updateTimerLink('inactive', false); // update icon, store logWork
         cs.sendContentMessage({method: 'updateIcon', action: 'stop'});
         cs.logWork(newStart, newEnd, ticketName);
     },
@@ -105,7 +105,7 @@ var cs = {
             });
 
             chrome.storage.local.remove(keys, function () {
-                cs.toggleIconActive(true, false); // only update icon
+                cs.updateTimerLink('inactive', false); // only update icon
                 cs.sendContentMessage({method: 'updateIcon', action: 'stop'});
                 toastr.clear();
             });
@@ -128,11 +128,11 @@ var cs = {
                 "tapToDismiss": false
             });
 
-        if ($toast.find('#updateTimesBtn').length){
+        if ($toast && $toast.find('#updateTimesBtn').length){
             $toast.delegate('#updateTimesBtn', 'click', cs.updateTime);
         }
 
-        if ($toast.find('#clearTimesBtn').length){
+        if ($toast && $toast.find('#clearTimesBtn').length){
             $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
         }
     },
@@ -147,7 +147,7 @@ var cs = {
                 "extendedTimeOut": "0"
             });
 
-        if ($toast.find('#clearTimesBtn').length){
+        if ($toast && $toast.find('#clearTimesBtn').length){
             $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
         }
     },
@@ -232,6 +232,7 @@ if ($('.jiraTimer').length === 0) {
 
 
 $('.jiraTimer').on('click', function (e) {
+    e.preventDefault();
     var isActive = $(e.target).hasClass('active');
     var action = isActive ? 'stop' : 'start';
     var jiraTicketName = document.title.substr(1, document.title.indexOf(']') - 1);
@@ -246,7 +247,11 @@ $('.jiraTimer').on('click', function (e) {
 
         // determine if changing status is okay first...
         if (keys.length === 0 || (keys.length === 1 && keys[0] === jiraTicketName)){
-            cs.toggleIconActive(isActive, false); // send message (update icon, store logWork)
+
+            if (keys.length === 0){
+                cs.updateTimerLink('active', false, false);
+            }
+
             cs.sendContentMessage({method: 'updateIcon', action: action});
             cs.sendContentMessage({method: 'storeTicketInfo', action: action});
         } else {
@@ -261,12 +266,14 @@ $('.jiraTimer').on('click', function (e) {
                     "timeOut": "0",
                     "extendedTimeOut": "0"
                 });
-                $toast.delegate('.navToJira', 'click', function (e) {
-                    toastr.clear($toast);
-                    var tabId = parseInt($(e.target).attr('data-tab-id'));
-                    var url = $(e.target).attr('data-tab-url');
-                    cs.sendContentMessage({method: 'focusOrNavigateToTab', tabId: tabId, url: url});
-                });
+                if ($toast && $toast.find('.navToJira').length){
+                    $toast.delegate('.navToJira', 'click', function (e) {
+                        toastr.clear($toast);
+                        var tabId = parseInt($(e.target).attr('data-tab-id'));
+                        var url = $(e.target).attr('data-tab-url');
+                        cs.sendContentMessage({method: 'focusOrNavigateToTab', tabId: tabId, url: url});
+                    });
+                }
             });
         }
 
@@ -277,12 +284,12 @@ $('.jiraTimer').on('mouseover', cs.displayDurationInfo);
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.from === 'background') {
-        switch (request.action) {
+        switch (request.method) {
             case 'logWork':
                 cs.logWork(request.start, request.end, request.ticketName);
                 break;
             case 'updateStatusImage':
-                cs.toggleIconActive(false, true); // don't send message, just update image
+                cs.updateTimerLink(request.setClass, true, true); // don't send message, just update image
                 break;
         }
     }

@@ -27,11 +27,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
 });
 
-chrome.tabs.onActivated.addListener(function (tabInfo) {
-    bg.onTabUpdated(tabInfo.tabId);
+chrome.tabs.onActivated.addListener(function (activeInfo) {
+    bg.onTabUpdated(activeInfo.tabId);
 })
 
-chrome.tabs.onUpdated.addListener(function (tabId) {
+chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     bg.onTabUpdated(tabId);
 });
 
@@ -58,10 +58,8 @@ var bg = {
             if (isJiraPage) {
                 chrome.storage.local.get(function (res) {
                     var keys = Object.keys(res);
-                    if (keys.indexOf(jiraTicketName) > -1) {
-                        bg.updateIcon({action: 'start'}, tabId);
-                        bg.sendBackgroundMessage({action: 'updateStatusImage'});
-                    }
+                    var setClass = keys.indexOf(jiraTicketName) > -1 ? 'active' : 'inactive';
+                    bg.sendBackgroundMessage({method: 'updateStatusImage', setClass: setClass});
                 });
             }
         });
@@ -80,7 +78,7 @@ var bg = {
                     chrome.storage.local.get(jiraTicketName, function (ticketRes) {
                         var end = (Object.values(ticketRes)[0] && Object.values(ticketRes)[0].end) ? Object.values(ticketRes)[0]['end'] : moment.now();
                         var start = Object.values(ticketRes)[0].start;
-                        bg.sendBackgroundMessage({action: 'logWork', start: start, end: end, ticketName: jiraTicketName});
+                        bg.sendBackgroundMessage({method: 'logWork', start: start, end: end, ticketName: jiraTicketName});
                     });
                 }
             }
