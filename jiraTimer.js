@@ -152,7 +152,7 @@ var cs = {
         }
     },
     displayDurationInfo: function(e){
-        if ($(e.target).hasClass('active')){
+        if ($('.jiraTimer').hasClass('active')){
             var jiraTicketName = document.title.substr(1, document.title.indexOf(']') - 1);
             chrome.storage.local.get(jiraTicketName, function (ticketRes) {
                 var start = Object.values(ticketRes)[0].start;
@@ -280,7 +280,10 @@ $('.jiraTimer').on('click', function (e) {
     });
 });
 
-$('.jiraTimer').on('mouseover', cs.displayDurationInfo);
+$('#key-val').on('mouseover', cs.displayDurationInfo);
+$('#key-val').on('mouseout', function () {
+   toastr.clear();
+});
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.from === 'background') {

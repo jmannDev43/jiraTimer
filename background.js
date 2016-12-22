@@ -29,7 +29,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 chrome.tabs.onActivated.addListener(function (activeInfo) {
     bg.onTabUpdated(activeInfo.tabId);
-})
+});
 
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     bg.onTabUpdated(tabId);
