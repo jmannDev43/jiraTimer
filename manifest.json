@@ -14,7 +14,7 @@
     "persistent": false
   },
   "content_scripts": [{
-    "matches": ["*://jira.REPLACE-WITH-YOUR-ORG/*"],
+    "matches": ["*://jira.REPLACE-WITH-YOUR-ORG-DOMAIN/*"],
     "js": ["third-party/js/jquery-3.1.1.min.js", "third-party/js/moment.min.js", "third-party/js/toastr.min.js", "third-party/js/anime.min.js", "jiraTimer.js"],
     "css": ["third-party/css/toastr.min.css", "jiraTimer.css"]
   }],
@@ -23,7 +23,7 @@
     "default_title": "Jira Timer"
   },
   "permissions": [
-    "tabs", "background", "storage", "*://jira.REPLACE-WITH-YOUR-ORG/*"
+    "tabs", "background", "storage", "*://jira.REPLACE-WITH-YOUR-ORG-DOMAIN/*"
   ],
   "web_accessible_resources": [
     "active_19.png", "inactive_19.png", "code2coffee2.gif"
