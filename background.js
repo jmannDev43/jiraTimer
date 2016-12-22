@@ -40,7 +40,7 @@ var bg = {
     focusOrNavigateToTab: function(req) {
         chrome.tabs.query({windowId: windowId}, function(tabs){
             tabs = $.grep(tabs, function (tab) {
-                return tab.url === req.url.replace('#','');
+                return tab.url.replace('#','') === req.url.replace('#','');
             });
             if (tabs.length === 1){
                 // if tab(s) exists with desired url, set focus to first available one
