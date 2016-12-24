@@ -26,10 +26,13 @@ var cs = {
                 url = chrome.runtime.getURL('code2coffee2.gif');
                 $('.jiraTimer').css('background-image', 'url(' + url + ')');
                 $('.jiraTimer').text('stop();');
+                $('#key-val').append('<b> (Hover to view duration)</b>');
             } else { // start, return to active;
                 $('.jiraTimer').removeClass('active');
                 $('.jiraTimer').addClass('inactive');
                 $('.jiraTimer').text('start();');
+                var ticketNumber = $('#key-val').text().split(' ')[0];
+                $('#key-val').html(ticketNumber);
             }
 
             !isOnTabFocus && cs.bounceIn(isOnLoad);
@@ -282,7 +285,9 @@ $('.jiraTimer').on('click', function (e) {
 
 $('#key-val').on('mouseover', cs.displayDurationInfo);
 $('#key-val').on('mouseout', function () {
-   toastr.clear();
+    if ($('.jiraTimer').hasClass('active')) {
+        toastr.clear();
+    }
 });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
