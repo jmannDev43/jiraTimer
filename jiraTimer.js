@@ -26,16 +26,24 @@ var cs = {
                 url = chrome.runtime.getURL('code2coffee2.gif');
                 $('.jiraTimer').css('background-image', 'url(' + url + ')');
                 $('.jiraTimer').text('stop();');
-                $('#key-val').append('<b> (Hover to view duration)</b>');
             } else { // start, return to active;
                 $('.jiraTimer').removeClass('active');
                 $('.jiraTimer').addClass('inactive');
                 $('.jiraTimer').text('start();');
-                var ticketNumber = $('#key-val').text().split(' ')[0];
-                $('#key-val').html(ticketNumber);
             }
 
+            cs.updateHoverLink(setClass);
             !isOnTabFocus && cs.bounceIn(isOnLoad);
+    },
+    updateHoverLink: function (setClass) {
+        var hasHoverText = $('#key-val').text().indexOf('Hover') > -1;
+        var ticketNumber = $('#key-val').text().split(' ')[0];
+
+        if (setClass === 'active'){
+            !hasHoverText && $('#key-val').append('<b> (Hover to view duration)</b>');
+        } else {
+            hasHoverText && $('#key-val').html(ticketNumber);
+        }
     },
     getDurationInfo: function (start, end, format) {
         var duration = {
