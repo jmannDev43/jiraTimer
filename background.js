@@ -101,13 +101,42 @@ var bg = {
             chrome.tabs.query({windowId: windowId, active: true}, function (tabs) {
                 var selectedTab = tabs[0];
                 if (selectedTab) {
-                    chrome.browserAction.setIcon({path: iconName, tabId: selectedTab.id});
+                    chrome.browserAction.setIcon({ path: iconName });
                 }
             });
         }
     }
-
 }
 
+function goToJiraTimer(goToBoard = false) {
+  chrome.storage.local.get((res) => {
+    const keys = $.grep(Object.keys(res), function(el) {
+      return el.indexOf('-') > -1;
+    });
+    if (keys.length === 0 || goToBoard) {
+      const regex = /\w(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)/im;
+      const manifestURLMatch = chrome.runtime.getManifest().content_scripts[0].matches[0];
+      let m;
+      if ((m = regex.exec(manifestURLMatch)) !== null) {
+        chrome.tabs.create({url: `https://${m[0]}`, active: true}, function(){});
+      }
+    } else {
+      chrome.tabs.create({url: res[keys[0]].url, active: true}, function(){});
+    }
+  });
+}
 
+chrome.contextMenus.create({ title: 'Go To Jira Timer', id: 'goToJiraTimer', contexts: ['browser_action']});
+chrome.contextMenus.create({ title: 'Go To Jira', id: 'goToJira', contexts: ['browser_action'] });
+chrome.contextMenus.onClicked.addListener((obj) => {
+  if (obj.menuItemId === 'goToJiraTimer') {
+    goToJiraTimer();
+  }
+  if (obj.menuItemId === 'goToJira') {
+    goToJiraTimer(true);
+  }
+});
+chrome.browserAction.onClicked.addListener((obj) => {
+  goToJiraTimer();
+});
 

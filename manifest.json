@@ -23,7 +23,7 @@
     "default_title": "Jira Timer"
   },
   "permissions": [
-    "tabs", "background", "storage", "*://jira.REPLACE-WITH-YOUR-ORG-DOMAIN/*"
+    "contextMenus", "tabs", "background", "storage", "*://jira.REPLACE-WITH-YOUR-ORG-DOMAIN/*"
   ],
   "web_accessible_resources": [
     "active_19.png", "inactive_19.png", "code2coffee2.gif"
