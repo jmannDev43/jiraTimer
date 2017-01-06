@@ -101,7 +101,7 @@ var bg = {
             chrome.tabs.query({windowId: windowId, active: true}, function (tabs) {
                 var selectedTab = tabs[0];
                 if (selectedTab) {
-                    chrome.browserAction.setIcon({path: iconName, tabId: selectedTab.id});
+                    chrome.browserAction.setIcon({ path: iconName });
                 }
             });
         }
