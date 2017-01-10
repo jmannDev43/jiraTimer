@@ -1,9 +1,9 @@
-$(function () {
+$(() => {
     if (window.location.href.indexOf('/secure/CreateWorklog') > -1) {
-        chrome.storage.local.get('logWorkFormValues', function (res) {
-            var formValues = Object.values(res)[0];
+        chrome.storage.local.get('logWorkFormValues', (res) => {
+            const formValues = Object.values(res)[0];
             // clear temporary holder for form values and ticket info
-            chrome.storage.local.remove(['logWorkFormValues', formValues.ticketName], function () {});
+            chrome.storage.local.remove(['logWorkFormValues', formValues.ticketName], () => {});
 
             // set form values
             $('#comment').val(formValues.comment);
@@ -17,9 +17,9 @@ $(function () {
 });
 
 // content script methods
-var cs = {
-    updateTimerLink: function(setClass, isOnLoad, isOnTabFocus) {
-            var url;
+let cs = {
+    updateTimerLink: (setClass, isOnLoad, isOnTabFocus) => {
+            let url;
             if (setClass === 'active') { // stop, return to inactive
                 $('.jiraTimer').removeClass('inactive');
                 $('.jiraTimer').addClass('active');
@@ -35,9 +35,9 @@ var cs = {
             cs.updateHoverLink(setClass);
             !isOnTabFocus && cs.bounceIn(isOnLoad);
     },
-    updateHoverLink: function (setClass) {
-        var hasHoverText = $('#key-val').text().indexOf('Hover') > -1;
-        var ticketNumber = $('#key-val').text().split(' ')[0];
+    updateHoverLink: (setClass) => {
+        const hasHoverText = $('#key-val').text().indexOf('Hover') > -1;
+        const ticketNumber = $('#key-val').text().split(' ')[0];
 
         if (setClass === 'active'){
             !hasHoverText && $('#key-val').append('<b> (Hover to view duration)</b>');
@@ -45,8 +45,8 @@ var cs = {
             hasHoverText && $('#key-val').html(ticketNumber);
         }
     },
-    getDurationInfo: function (start, end, format) {
-        var duration = {
+    getDurationInfo: (start, end, format) => {
+        const duration = {
             seconds: moment(end).diff(moment(start), 'seconds'),
             minutes: moment(end).diff(moment(start), 'minutes'),
             hours: moment(end).diff(moment(start), 'hours'),
@@ -55,18 +55,18 @@ var cs = {
 
         duration['seconds'] = duration.seconds - (duration.minutes * 60);
 
-        var hourUnit = format === 'short' ? 'h ' : 'hours ';
-        var minuteUnit = format === 'short' ? 'm' : ' minutes ';
+        const hourUnit = format === 'short' ? 'h ' : 'hours ';
+        const minuteUnit = format === 'short' ? 'm' : ' minutes ';
 
-        var hourStr = duration.hours > 0 ? duration.hours + hourUnit : '';
-        var minuteStr = duration.minutes > 0 && duration.minutes < 60 ? duration.minutes + minuteUnit : '';
-        var secondStr = (format !== 'short' && duration.seconds > 0) ? duration.seconds + ' seconds' : '';
+        const hourStr = duration.hours > 0 ? duration.hours + hourUnit : '';
+        const minuteStr = duration.minutes > 0 && duration.minutes < 60 ? duration.minutes + minuteUnit : '';
+        const secondStr = (format !== 'short' && duration.seconds > 0) ? duration.seconds + ' seconds' : '';
         duration['durationString'] = hourStr + minuteStr + secondStr;
         return duration;
     },
-    logWork: function(start, end, ticketName) {
-        var duration = cs.getDurationInfo(start, end, 'short');
-        var commentStr = 'Start: ' + moment(start).format() + '\nEnd: ' + moment(end).format();
+    logWork: (start, end, ticketName) => {
+        const duration = cs.getDurationInfo(start, end, 'short');
+        const commentStr = `Start: ${moment(start).format()} \nEnd: ${moment(end).format()}`;
 
         toastr.clear();
         if (duration.days > 0 || duration.hours > 7) {
@@ -75,7 +75,7 @@ var cs = {
             cs.sendClearOnlyToast();
             cs.sendContentMessage({method: 'updateIcon', action: 'stop'});
         } else {
-            var save = {
+            const save = {
                 logWorkFormValues: {
                     duration: duration.durationString,
                     comment: commentStr,
@@ -83,56 +83,56 @@ var cs = {
                     ticketName: ticketName
                 }
             };
-            chrome.storage.local.set(save, function () {});
+            chrome.storage.local.set(save, () => {});
 
             // Timing issues prevent modal from opening on $('#log-work').click().
             // To get around this, navigate straight to form page, and then continue running code in document.ready (top of this file).
-            var href = $("a.issueaction-log-work").attr('href');
+            const href = $("a.issueaction-log-work").attr('href');
             window.location.href = href;
         }
     },
-    sendContentMessage: function(options) {
+    sendContentMessage: (options) => {
         options['from'] = 'content';
-        chrome.runtime.sendMessage(options, function () {});
+        chrome.runtime.sendMessage(options, () => {});
     },
-    updateTime: function (e) {
-        var newStart = $('#jiraStart.toastInput').val();
-        var newEnd = $('#jiraEnd.toastInput').val();
+    updateTime: (e) => {
+        let newStart = $('#jiraStart.toastInput').val();
+        let newEnd = $('#jiraEnd.toastInput').val();
         newStart = moment(newStart, "YYYY-MM-DD h:m A").valueOf();
         newEnd = moment(newEnd, "YYYY-MM-DD h:m A").valueOf();
-        var ticketName = $('#jiraUpdateTicketName').text();
+        const ticketName = $('#jiraUpdateTicketName').text();
 
         cs.updateTimerLink('inactive', false); // update icon, store logWork
         cs.sendContentMessage({method: 'updateIcon', action: 'stop'});
         cs.logWork(newStart, newEnd, ticketName);
     },
-    clearTime: function (e) {
-        chrome.storage.local.get(function (res) {
-            var keys = Object.keys(res);
+    clearTime:(e) => {
+        chrome.storage.local.get((res) => {
+            let keys = Object.keys(res);
 
             // filter out any local storage keys without hyphen
-            keys = $.grep(keys, function (el) {
+            keys = $.grep(keys, (el) => {
                 return el.indexOf('-') > -1;
             });
 
-            chrome.storage.local.remove(keys, function () {
+            chrome.storage.local.remove(keys, () => {
                 cs.updateTimerLink('inactive', false); // only update icon
                 cs.sendContentMessage({method: 'updateIcon', action: 'stop'});
                 toastr.clear();
             });
         });
     },
-    sendUpdateTimeToast: function(start, end, ticketName){
+    sendUpdateTimeToast: (start, end, ticketName) => {
         // display start / end info for user and don't auto-close toast
-        var title = 'Duration is greater than 8 hours';
-        var htmlMessage = '<br><p>Did you leave timer running?  Edit Start / End times belows.</p><br>';
+        const title = 'Duration is greater than 8 hours';
+        let htmlMessage = '<br><p>Did you leave timer running?  Edit Start / End times belows.</p><br>';
         htmlMessage += '<p id="jiraUpdateTicketName">' + ticketName + '</p><br>';
         htmlMessage += '<label><i>Start:</i></label><br><input type="text" class="toastInput" id="jiraStart" value="' + moment(start).format('YYYY-MM-DD h:m A') + '"><br>';
         htmlMessage += '<label><i>End:</i></label><br><input type="text" class="toastInput" id="jiraEnd" value="' + moment(end).format('YYYY-MM-DD h:m A') + '">';
         htmlMessage += '<br><br>';
         htmlMessage += '<button type="button" id="updateTimesBtn" class="btn btn-primary toastBtn">Update</button>';
         htmlMessage += '<button type="button" id="clearTimesBtn" class="btn toastBtn">Clear</button>';
-        var $toast = $('.toast:visible').length < 1 && toastr.error(htmlMessage, title, {
+        const $toast = $('.toast:visible').length < 1 && toastr.error(htmlMessage, title, {
                 "closeButton": true,
                 "timeOut": "0",
                 "extendedTimeOut": "0",
@@ -147,12 +147,12 @@ var cs = {
             $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
         }
     },
-    sendClearOnlyToast: function () {
-        var title = ('Duration must be at least 1 minute.');
-        var htmlMessage = '<br><p>Click below to clear or close.</p>';
+    sendClearOnlyToast: () => {
+        const title = ('Duration must be at least 1 minute.');
+        let htmlMessage = '<br><p>Click below to clear or close.</p>';
         htmlMessage += '<br><br>';
         htmlMessage += '<button type="button" id="clearTimesBtn" class="btn btn-primary toastBtn">Clear</button>';
-        var $toast = $('.toast:visible').length < 1 && toastr.error(htmlMessage, title, {
+        const $toast = $('.toast:visible').length < 1 && toastr.error(htmlMessage, title, {
                 "closeButton": true,
                 "timeOut": "0",
                 "extendedTimeOut": "0"
@@ -162,16 +162,16 @@ var cs = {
             $toast.delegate('#clearTimesBtn', 'click', cs.clearTime);
         }
     },
-    displayDurationInfo: function(e){
+    displayDurationInfo: (e) => {
         if ($('.jiraTimer').hasClass('active')){
-            var jiraTicketName = document.title.substr(1, document.title.indexOf(']') - 1);
-            chrome.storage.local.get(jiraTicketName, function (ticketRes) {
-                var start = Object.values(ticketRes)[0].start;
-                var now = moment.now();
-                var duration = cs.getDurationInfo(start, now, 'long');
+            const jiraTicketName = document.title.substr(1, document.title.indexOf(']') - 1);
+            chrome.storage.local.get(jiraTicketName, (ticketRes) => {
+                const start = Object.values(ticketRes)[0].start;
+                const now = moment.now();
+                const duration = cs.getDurationInfo(start, now, 'long');
 
                 // should never run into situations where ticket wasn't started today...
-                var htmlMessage = '<br><p>Started today at ' + moment(start).format('h:mm A') + '</p>';
+                let htmlMessage = '<br><p>Started today at ' + moment(start).format('h:mm A') + '</p>';
                 htmlMessage += '<p>Current time is ' + moment(now).format('h:mm A') + '</p>';
                 htmlMessage += '<p>Duration is ' + duration.durationString + '</p>';
                 $('.toast:visible').length < 1 && toastr.info(htmlMessage, jiraTicketName, {
@@ -181,7 +181,7 @@ var cs = {
             });
         }
     },
-    bounceIn: function(isOnLoad) {
+    bounceIn: (isOnLoad) => {
         if (isOnLoad) {
             anime({
                 targets: '.jiraTimer',
@@ -189,7 +189,7 @@ var cs = {
                 duration: 300,
                 delay: 150,
                 easing: 'easeInOutExpo',
-                complete: function () {
+                complete: () => {
                     anime({
                         targets: '.jiraTimer',
                         scale: 1,
@@ -206,14 +206,14 @@ var cs = {
                 delay: 0,
                 duration: 150,
                 easing: 'easeOutBounce',
-                complete: function () {
+                complete: () => {
                     anime({
                         targets: '.jiraTimer',
                         scale: 1.4,
                         duration: 200,
                         delay: 150,
                         easing: 'easeInOutExpo',
-                        complete: function () {
+                        complete: () => {
                             anime({
                                 targets: '.jiraTimer',
                                 scale: 1,
@@ -230,7 +230,7 @@ var cs = {
 }
 
 if ($('.jiraTimer').length === 0) {
-    var html = ' \
+    const html = ' \
     <ul class="toolbar-group"> \
         <li class="toolbar-item"> \
             <a class="jiraTimer jira inactive" href="#">start();</a> \
@@ -242,17 +242,17 @@ if ($('.jiraTimer').length === 0) {
 }
 
 
-$('.jiraTimer').on('click', function (e) {
+$('.jiraTimer').on('click', (e) => {
     e.preventDefault();
-    var isActive = $(e.target).hasClass('active');
-    var action = isActive ? 'stop' : 'start';
-    var jiraTicketName = document.title.substr(1, document.title.indexOf(']') - 1);
+    const isActive = $(e.target).hasClass('active');
+    const action = isActive ? 'stop' : 'start';
+    const jiraTicketName = document.title.substr(1, document.title.indexOf(']') - 1);
 
-    chrome.storage.local.get(function (res) {
-        var keys = Object.keys(res);
+    chrome.storage.local.get((res) => {
+        let keys = Object.keys(res);
 
         // filter out any local storage keys without hyphen
-        keys = $.grep(keys, function(el) {
+        keys = $.grep(keys, (el) => {
             return el.indexOf('-') > -1;
         });
 
@@ -266,22 +266,22 @@ $('.jiraTimer').on('click', function (e) {
             cs.sendContentMessage({method: 'updateIcon', action: action});
             cs.sendContentMessage({method: 'storeTicketInfo', action: action});
         } else {
-            var html = '<div><p><br>Oops! It looks like another JIRA ticket is in progress.  Click the button below to navigate to it.</p><br>';
-            chrome.storage.local.get(keys, function(res){
-                $.each(res, function(name, tab){
+            let html = '<div><p><br>Oops! It looks like another JIRA ticket is in progress.  Click the button below to navigate to it.</p><br>';
+            chrome.storage.local.get(keys, (res) => {
+                $.each(res, (name, tab) => {
                     html += '<button type="button" class="btn toastBtn navToJira" data-tab-id="' + tab.tabId + '" data-tab-url="' + tab.url + '">' + name + '</button>'
                 });
                 html += '</div>';
-                var $toast = toastr.info(html, 'Another ticket already in progress!', {
+                const $toast = toastr.info(html, 'Another ticket already in progress!', {
                     "closeButton": true,
                     "timeOut": "0",
                     "extendedTimeOut": "0"
                 });
                 if ($toast && $toast.find('.navToJira').length){
-                    $toast.delegate('.navToJira', 'click', function (e) {
+                    $toast.delegate('.navToJira', 'click', (e) => {
                         toastr.clear($toast);
-                        var tabId = parseInt($(e.target).attr('data-tab-id'));
-                        var url = $(e.target).attr('data-tab-url');
+                        const tabId = parseInt($(e.target).attr('data-tab-id'));
+                        const url = $(e.target).attr('data-tab-url');
                         cs.sendContentMessage({method: 'focusOrNavigateToTab', tabId: tabId, url: url});
                     });
                 }
@@ -292,13 +292,13 @@ $('.jiraTimer').on('click', function (e) {
 });
 
 $('#key-val').on('mouseover', cs.displayDurationInfo);
-$('#key-val').on('mouseout', function () {
+$('#key-val').on('mouseout', () => {
     if ($('.jiraTimer').hasClass('active')) {
         toastr.clear();
     }
 });
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.from === 'background') {
         switch (request.method) {
             case 'logWork':
