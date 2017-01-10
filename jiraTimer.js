@@ -106,7 +106,7 @@ let cs = {
         cs.sendContentMessage({method: 'updateIcon', action: 'stop'});
         cs.logWork(newStart, newEnd, ticketName);
     },
-    clearTime:(e) => {
+    clearTime: (e) => {
         chrome.storage.local.get((res) => {
             let keys = Object.keys(res);
 

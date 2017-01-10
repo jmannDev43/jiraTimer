@@ -126,8 +126,15 @@ goToJiraTimer = (goToBoard = false) => {
   });
 }
 
-chrome.contextMenus.create({ title: 'Go To Jira Timer', id: 'goToJiraTimer', contexts: ['browser_action']});
-chrome.contextMenus.create({ title: 'Go To Jira', id: 'goToJira', contexts: ['browser_action'] });
+let hasAddedContextMenus = false;
+
+if (!hasAddedContextMenus){
+    hasAddedContextMenus = true;
+    chrome.contextMenus.create({ title: 'Go To Jira Timer', id: 'goToJiraTimer', contexts: ['browser_action']});
+    chrome.contextMenus.create({ title: 'Go To Jira', id: 'goToJira', contexts: ['browser_action'] });
+}
+
+
 chrome.contextMenus.onClicked.addListener((obj) => {
   if (obj.menuItemId === 'goToJiraTimer') {
     goToJiraTimer();
